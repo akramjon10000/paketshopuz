@@ -18,6 +18,7 @@ export interface User {
   name?: string;
   addresses?: Address[];
   telegramId?: number;
+  isAdmin?: boolean;
 }
 
 export interface Address {

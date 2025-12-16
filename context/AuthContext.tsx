@@ -1,9 +1,15 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User } from '../types';
 
+// Admin credentials
+const ADMIN_CREDENTIALS = {
+  username: 'Akramjon',
+  password: 'Hisobot201415!'
+};
+
 interface AuthContextType {
   user: User | null;
-  login: (phone: string, name?: string) => void;
+  login: (username: string, password: string) => boolean;
   logout: () => void;
   isAdmin: boolean;
   currentAddress: string;
@@ -14,56 +20,57 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [currentAddress, setCurrentAddress] = useState<string>("Tashkent, Amir Temur 1");
+  const [currentAddress, setCurrentAddress] = useState<string>("Toshkent sh.");
 
   useEffect(() => {
-    // 1. Check Local Storage first
-    const stored = localStorage.getItem('kfc_user');
+    // Check Local Storage
+    const stored = localStorage.getItem('paketshop_user');
     if (stored) {
       setUser(JSON.parse(stored));
     }
 
-    // 2. Check for Telegram WebApp Integration
+    // Telegram WebApp Integration
     if (window.Telegram?.WebApp) {
         const tg = window.Telegram.WebApp;
         tg.ready();
-        tg.expand(); // Open full height
-        tg.setHeaderColor('#ffffff'); // Match app theme
-        tg.setBackgroundColor('#f8fafc'); // Match slate-50
+        tg.expand();
+        tg.setHeaderColor('#f97316');
+        tg.setBackgroundColor('#f8fafc');
 
         const tgUser = tg.initDataUnsafe?.user;
         if (tgUser) {
-            // Auto-login Telegram user
-            // Since Telegram doesn't give phone number directly without request, 
-            // we use a placeholder or ID-based mock phone for the session.
-            const telegramPhone = `+998(TG)${tgUser.id}`;
-            const displayName = `${tgUser.first_name} ${tgUser.last_name || ''}`.trim();
-            
             const newUser: User = { 
-                phone: telegramPhone, 
-                name: displayName,
+                phone: `TG-${tgUser.id}`, 
+                name: `${tgUser.first_name} ${tgUser.last_name || ''}`.trim(),
                 telegramId: tgUser.id
             };
-            
             setUser(newUser);
-            localStorage.setItem('kfc_user', JSON.stringify(newUser));
+            localStorage.setItem('paketshop_user', JSON.stringify(newUser));
         }
     }
   }, []);
 
-  const login = (phone: string, name?: string) => {
-    const newUser: User = { phone, name: name || 'KFC Fan' };
-    setUser(newUser);
-    localStorage.setItem('kfc_user', JSON.stringify(newUser));
+  const login = (username: string, password: string): boolean => {
+    // Check admin credentials
+    if (username === ADMIN_CREDENTIALS.username && password === ADMIN_CREDENTIALS.password) {
+      const adminUser: User = { 
+        phone: 'admin', 
+        name: 'Admin',
+        isAdmin: true
+      };
+      setUser(adminUser);
+      localStorage.setItem('paketshop_user', JSON.stringify(adminUser));
+      return true;
+    }
+    return false;
   };
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem('kfc_user');
+    localStorage.removeItem('paketshop_user');
   };
 
-  // Simple admin check mock (Supports both manual phone and Telegram ID mock)
-  const isAdmin = user?.phone === '+998901234567' || user?.phone?.includes('(TG)123456789'); // Add your TG ID here for admin testing
+  const isAdmin = user?.isAdmin === true || user?.name === 'Admin';
 
   return (
     <AuthContext.Provider value={{ user, login, logout, isAdmin, currentAddress, setCurrentAddress }}>
