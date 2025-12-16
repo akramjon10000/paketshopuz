@@ -1,0 +1,9 @@
+services:
+  telegram-bot:
+    build: ./server
+    container_name: paketshop-bot
+    restart: unless-stopped
+    ports:
+      - "3003:3002"
+    env_file:
+      - ./server/.env

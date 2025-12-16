@@ -3,11 +3,23 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const sql = neon(process.env.DATABASE_URL!);
+// Only create SQL connection if DATABASE_URL is set
+const sql = process.env.DATABASE_URL ? neon(process.env.DATABASE_URL) : null;
+
+// Check if DB is available
+function checkDb() {
+  if (!sql) {
+    console.log('⚠️ DATABASE_URL not set, DB operations skipped');
+    return false;
+  }
+  return true;
+}
 
 // Initialize database tables
 export async function initDatabase() {
-    await sql`
+  if (!checkDb() || !sql) return;
+
+  await sql`
     CREATE TABLE IF NOT EXISTS products (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
@@ -20,7 +32,7 @@ export async function initDatabase() {
     )
   `;
 
-    await sql`
+  await sql`
     CREATE TABLE IF NOT EXISTS orders (
       id TEXT PRIMARY KEY,
       items JSONB NOT NULL,
@@ -36,7 +48,7 @@ export async function initDatabase() {
     )
   `;
 
-    await sql`
+  await sql`
     CREATE TABLE IF NOT EXISTS users (
       id SERIAL PRIMARY KEY,
       telegram_id BIGINT UNIQUE,
@@ -47,29 +59,32 @@ export async function initDatabase() {
     )
   `;
 
-    console.log('✅ Database tables initialized');
+  console.log('✅ Database tables initialized');
 }
 
 // Products
 export async function getProducts() {
-    return await sql`SELECT * FROM products ORDER BY popular DESC, created_at DESC`;
+  if (!sql) return [];
+  return await sql`SELECT * FROM products ORDER BY popular DESC, created_at DESC`;
 }
 
 export async function getProductById(id: string) {
-    const result = await sql`SELECT * FROM products WHERE id = ${id}`;
-    return result[0];
+  if (!sql) return null;
+  const result = await sql`SELECT * FROM products WHERE id = ${id}`;
+  return result[0];
 }
 
 export async function createProduct(product: {
-    id: string;
-    name: string;
-    description: string;
-    price: number;
-    images: string[];
-    category: string;
-    popular?: boolean;
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  images: string[];
+  category: string;
+  popular?: boolean;
 }) {
-    await sql`
+  if (!sql) return;
+  await sql`
     INSERT INTO products (id, name, description, price, images, category, popular)
     VALUES (${product.id}, ${product.name}, ${product.description}, ${product.price}, ${product.images}, ${product.category}, ${product.popular || false})
     ON CONFLICT (id) DO UPDATE SET
@@ -84,47 +99,53 @@ export async function createProduct(product: {
 
 // Orders
 export async function createOrder(order: {
-    id: string;
-    items: any[];
-    total: number;
-    address: string;
-    phone: string;
-    customerName?: string;
-    paymentMethod: string;
-    comment?: string;
-    telegramId?: number;
+  id: string;
+  items: any[];
+  total: number;
+  address: string;
+  phone: string;
+  customerName?: string;
+  paymentMethod: string;
+  comment?: string;
+  telegramId?: number;
 }) {
-    await sql`
+  if (!sql) return order;
+  await sql`
     INSERT INTO orders (id, items, total, address, phone, customer_name, payment_method, comment, telegram_id)
     VALUES (${order.id}, ${JSON.stringify(order.items)}, ${order.total}, ${order.address}, ${order.phone}, ${order.customerName}, ${order.paymentMethod}, ${order.comment || ''}, ${order.telegramId || null})
   `;
-    return order;
+  return order;
 }
 
 export async function getOrdersByPhone(phone: string) {
-    return await sql`SELECT * FROM orders WHERE phone = ${phone} ORDER BY created_at DESC`;
+  if (!sql) return [];
+  return await sql`SELECT * FROM orders WHERE phone = ${phone} ORDER BY created_at DESC`;
 }
 
 export async function getAllOrders() {
-    return await sql`SELECT * FROM orders ORDER BY created_at DESC LIMIT 100`;
+  if (!sql) return [];
+  return await sql`SELECT * FROM orders ORDER BY created_at DESC LIMIT 100`;
 }
 
 export async function updateOrderStatus(id: string, status: string) {
-    await sql`UPDATE orders SET status = ${status} WHERE id = ${id}`;
+  if (!sql) return;
+  await sql`UPDATE orders SET status = ${status} WHERE id = ${id}`;
 }
 
 // Users
 export async function getUserByTelegramId(telegramId: number) {
-    const result = await sql`SELECT * FROM users WHERE telegram_id = ${telegramId}`;
-    return result[0];
+  if (!sql) return null;
+  const result = await sql`SELECT * FROM users WHERE telegram_id = ${telegramId}`;
+  return result[0];
 }
 
 export async function createOrUpdateUser(user: {
-    telegramId: number;
-    phone?: string;
-    name?: string;
+  telegramId: number;
+  phone?: string;
+  name?: string;
 }) {
-    await sql`
+  if (!sql) return;
+  await sql`
     INSERT INTO users (telegram_id, phone, name)
     VALUES (${user.telegramId}, ${user.phone || null}, ${user.name || null})
     ON CONFLICT (telegram_id) DO UPDATE SET

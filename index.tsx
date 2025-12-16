@@ -4,16 +4,24 @@ import App from './App';
 
 // Telegram WebApp initialization
 const initTelegramApp = () => {
-  const tg = window.Telegram?.WebApp;
-  if (tg) {
-    tg.ready();
-    tg.expand();
+  try {
+    const tg = window.Telegram?.WebApp;
+    if (tg) {
+      tg.ready();
+      tg.expand();
 
-    // Set theme colors matching brand
-    tg.setHeaderColor('#f97316'); // Orange
-    tg.setBackgroundColor('#f8fafc'); // Slate-50
+      // Set theme colors (with fallback for older versions)
+      try {
+        tg.setHeaderColor('#f97316');
+        tg.setBackgroundColor('#f8fafc');
+      } catch (e) {
+        console.log('Theme colors not supported');
+      }
 
-    console.log('Telegram WebApp initialized:', tg.initDataUnsafe?.user?.first_name || 'Guest');
+      console.log('Telegram WebApp initialized:', tg.initDataUnsafe?.user?.first_name || 'Guest');
+    }
+  } catch (error) {
+    console.log('Telegram WebApp init error:', error);
   }
 };
 
