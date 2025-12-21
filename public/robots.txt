@@ -1,0 +1,19 @@
+# PaketShop.uz Robots.txt
+# https://paketshop.uz
+
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://paketshop.uz/sitemap.xml
+
+# Disallow admin and private pages
+Disallow: /api/
+Disallow: /admin/
+
+# Allow search engines to crawl all product pages
+Allow: /menu
+Allow: /product/
+
+# Crawl delay for respectful crawling
+Crawl-delay: 1
