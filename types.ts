@@ -1,10 +1,24 @@
 export interface Product {
   id: string;
   name: string;
+  nameRu?: string; // Russian name
   description: string;
+  descriptionRu?: string; // Russian description
   price: number;
   images: string[];
-  category: 'bags' | 'boxes' | 'disposable' | 'tape' | 'hygiene';
+  category:
+  | 'cups'        // Stakanlar / Стаканы
+  | 'containers'  // Konteynerlar / Контейнеры
+  | 'plates'      // Likopchalar / Тарелки
+  | 'cutlery'     // Oshxona anjomlari / Столовые приборы
+  | 'accessories' // Aksessuarlar / Аксессуары
+  | 'bags'        // Paketlar / Пакеты
+  | 'kitchen'     // Oshxona sarflov / Расходные материалы
+  | 'cleaning'    // Tozalash / Инвентарь для уборки
+  | 'hygiene'     // Qog'oz gigiena / Бумажная гигиена
+  | 'household'   // Boshqa xo'jalik / Прочие хозтовары
+  | 'party';      // Tug'ilgan kun va bayram / Праздники
+  subcategory?: string; // Optional subcategory
   popular?: boolean;
   seoKeywords?: string;
 }

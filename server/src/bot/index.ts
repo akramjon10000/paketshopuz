@@ -21,7 +21,7 @@ bot.command('start', async (ctx) => {
                 inline_keyboard: [[
                     {
                         text: '🛒 Do\'konni ochish',
-                        url: process.env.WEBAPP_URL || 'https://paketshopuz.onrender.com'
+                        url: 'https://paketshop.uz'
                     }
                 ]]
             }
