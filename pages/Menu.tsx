@@ -45,11 +45,20 @@ const Menu = () => {
     const getCategoryName = (cat: string) => {
         switch (cat) {
             case 'All': return 'Barchasi';
+            // Bir martalik idishlar
+            case 'cups': return 'Stakanlar';
+            case 'containers': return 'Konteynerlar';
+            case 'plates': return 'Likopchalar';
+            case 'cutlery': return 'Qoshiq/Sanchqi';
+            case 'accessories': return 'Aksessuarlar';
+            // Xo'jalik mollari
             case 'bags': return 'Paketlar';
-            case 'boxes': return 'Qutilar';
-            case 'disposable': return 'Idishlar';
-            case 'tape': return 'Skotch';
+            case 'kitchen': return 'Oshxona sarflov';
+            case 'cleaning': return 'Tozalash';
             case 'hygiene': return 'Gigiena';
+            case 'household': return 'Xo\'jalik';
+            // Bayram
+            case 'party': return 'Bayram';
             default: return cat;
         }
     };
