@@ -98,6 +98,13 @@ npm run smoke
 - backend health endpoint
 - products endpoint
 
+## GitHub Actions CI
+
+Repo ichida `/.github/workflows/ci.yml` bor. U har `push` va `pull_request` da quyidagilarni bajaradi:
+- `npm run test`
+- `npm run build:server`
+- `npm run build`
+
 ## Admin
 
 Admin login frontend orqali `/profile` sahifasidan qilinadi.
