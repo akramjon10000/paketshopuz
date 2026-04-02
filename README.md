@@ -1,100 +1,153 @@
-# PaketShop.uz - Qadoqlash Mahsulotlari Do'koni
+# PaketShop.uz
 
-<div align="center">
-  <img src="https://images.unsplash.com/photo-1589939705384-5185137a7f0f?auto=format&fit=crop&q=80&w=1200" alt="PaketShop.uz Banner" width="100%" />
-  
-  **🛒 O'zbekiston uchun qadoqlash mahsulotlari online do'koni**
-  
-  Paketlar • Qutilar • Bir Martalik Idishlar • Skotch • Gigiena
-</div>
+PaketShop.uz - qadoqlash mahsulotlari uchun full-stack web ilova.
 
----
+Stack:
+- Frontend: React 19 + TypeScript + Vite
+- Backend: Express + TypeScript
+- Database: Neon Postgres yoki local JSON fallback
+- Admin auth: server-side password + signed token
+- Qo'shimcha: Telegram bot hook, Gemini Live assistant
 
-## 🚀 Texnologiyalar
+## Local ishga tushirish
 
-- **Frontend**: React 19 + TypeScript + Vite
-- **Styling**: TailwindCSS
-- **AI Assistant**: Google Gemini Live API (Ovozli yordamchi)
-- **Maps**: Leaflet + OpenStreetMap
-- **PWA**: Service Worker, Offline support
-- **Telegram**: Mini App SDK integratsiyasi
-
-## 📦 O'rnatish
+Root va server dependency'larini o'rnating:
 
 ```bash
-# Dependencies o'rnatish
 npm install
-
-# Development server
-npm run dev
-
-# Production build
-npm run build
+npm --prefix server install
 ```
 
-## ⚙️ Environment Variables
+Development server:
 
-`.env.local` faylini yarating:
+```bash
+npm run dev
+```
+
+Default local URL'lar:
+- Frontend: `http://localhost:3001`
+- Backend: `http://localhost:3002`
+- Health: `http://localhost:3002/health`
+
+## Environment
+
+Frontend uchun `.env`:
 
 ```env
-GEMINI_API_KEY=your_gemini_api_key_here
+GEMINI_API_KEY=
+VITE_API_URL=http://localhost:3002/api
 ```
 
-## 🌐 Deploy
+Backend uchun `server/.env`:
 
-### Render.com (Tavsiya etiladi)
+```env
+PORT=3002
+FRONTEND_URLS=http://localhost:3000,http://localhost:3001
+DATABASE_URL=
+ADMIN_PASSWORD=change-me
+ADMIN_NAME=Akramjon (Admin)
+ADMIN_SESSION_SECRET=change-this-admin-session-secret
+ADMIN_MAX_LOGIN_ATTEMPTS=5
+ADMIN_LOGIN_WINDOW_MINUTES=15
+BOT_TOKEN=
+ADMIN_CHAT_ID=
+WEBHOOK_URL=
+```
 
-1. GitHub'ga push qiling
-2. [Render.com](https://render.com) da yangi **Static Site** yarating
-3. Repository'ni ulang
-4. Environment variable'larni qo'shing: `GEMINI_API_KEY`
-5. Deploy!
+Izoh:
+- `DATABASE_URL` bo'sh bo'lsa backend `server/data/local-db.json` fallback bilan ishlaydi.
+- `DATABASE_URL` berilsa Neon/Postgres jadvallari avtomatik initialize qilinadi.
+- `BOT_TOKEN` bo'sh bo'lsa Telegram bot skip qilinadi.
 
-### Vercel
+## Foydali buyruqlar
 
 ```bash
-npm i -g vercel
-vercel
+npm run dev
+npm run build
+npm run build:server
+npm run test
+npm run smoke
+npm run seed
 ```
 
-## 📱 Telegram Mini App
+Server-only buyruqlar:
 
-1. [@BotFather](https://t.me/BotFather) da bot yarating
-2. `/newapp` buyrug'ini yuboring
-3. Web App URL'ni kiriting (deploy qilingan URL)
-4. Tayyor!
-
-## 🎤 AI Ovozli Yordamchi
-
-Foydalanuvchilar mikrofon tugmasini bosib AI yordamchi bilan gaplashishlari mumkin:
-- "Menga pitssa qutisi kerak"
-- "Kraft paket qo'sh"
-- "Savatda nima bor?"
-- "Buyurtma qil"
-
-## 📂 Loyiha Tuzilmasi
-
-```
-paketshop.uz/
-├── components/          # Qayta ishlatiladigan komponentlar
-│   ├── ProductCard.tsx  # Mahsulot kartasi
-│   ├── LiveAgent.tsx    # AI Ovozli yordamchi
-│   ├── Toast.tsx        # Bildirishnomalar
-│   └── ...
-├── pages/               # Sahifalar
-│   ├── Home.tsx
-│   ├── Menu.tsx
-│   ├── Cart.tsx
-│   └── admin/           # Admin panel
-├── context/             # React Context providers
-├── constants.ts         # Mahsulotlar ro'yxati
-└── types.ts             # TypeScript types
+```bash
+npm --prefix server run dev
+npm --prefix server run build
+npm --prefix server run test
+npm --prefix server run seed
 ```
 
-## 📄 Litsenziya
+## Test va smoke check
 
-MIT License - bepul foydalaning!
+Unit testlar:
 
----
+```bash
+npm run test
+```
 
-Made with ❤️ in Uzbekistan
+Live smoke check:
+
+```bash
+npm run smoke
+```
+
+`smoke` skripti quyidagilarni tekshiradi:
+- frontend HTML ochilishi
+- backend health endpoint
+- products endpoint
+
+## Admin
+
+Admin login frontend orqali `/profile` sahifasidan qilinadi.
+
+Admin imkoniyatlari:
+- mahsulot qo'shish va o'chirish
+- barcha buyurtmalarni ko'rish
+- statusni yangilash
+- qidiruv va filter
+
+Admin session server tomonda tekshiriladi. Login endpoint rate limit bilan himoyalangan.
+
+## Deploy
+
+`render.yaml` frontend va backend deploy uchun tayyorlangan.
+
+Muhim env'lar:
+- `DATABASE_URL`
+- `ADMIN_PASSWORD`
+- `ADMIN_SESSION_SECRET`
+- `GEMINI_API_KEY`
+- `BOT_TOKEN` (ixtiyoriy)
+
+## Loyiha tuzilmasi
+
+```text
+paketshopuz/
+|-- components/
+|-- context/
+|-- pages/
+|   |-- admin/
+|-- public/
+|-- scripts/
+|-- server/
+|   |-- src/
+|   |   |-- bot/
+|   |   |-- db/
+|   |   |-- lib/
+|   |   |-- routes/
+|   |   `-- data/
+|-- App.tsx
+|-- package.json
+`-- render.yaml
+```
+
+## Hozirgi yaxshilanishlar
+
+- `npm run dev` frontend + backend birga ishga tushadi
+- Neon DB va local fallback qo'llab-quvvatlanadi
+- admin password frontend kodida emas
+- admin login rate limit bilan himoyalangan
+- order va product API'larda validation bor
+- admin orders sahifasida qidiruv, filter va status boshqaruvi bor

@@ -1,24 +1,27 @@
 export interface Product {
   id: string;
   name: string;
-  nameRu?: string; // Russian name
+  nameRu?: string;
   description: string;
-  descriptionRu?: string; // Russian description
+  descriptionRu?: string;
   price: number;
   images: string[];
   category:
-  | 'cups'        // Stakanlar / Стаканы
-  | 'containers'  // Konteynerlar / Контейнеры
-  | 'plates'      // Likopchalar / Тарелки
-  | 'cutlery'     // Oshxona anjomlari / Столовые приборы
-  | 'accessories' // Aksessuarlar / Аксессуары
-  | 'bags'        // Paketlar / Пакеты
-  | 'kitchen'     // Oshxona sarflov / Расходные материалы
-  | 'cleaning'    // Tozalash / Инвентарь для уборки
-  | 'hygiene'     // Qog'oz gigiena / Бумажная гигиена
-  | 'household'   // Boshqa xo'jalik / Прочие хозтовары
-  | 'party';      // Tug'ilgan kun va bayram / Праздники
-  subcategory?: string; // Optional subcategory
+    | 'cups'
+    | 'containers'
+    | 'plates'
+    | 'cutlery'
+    | 'accessories'
+    | 'bags'
+    | 'boxes'
+    | 'disposable'
+    | 'tape'
+    | 'kitchen'
+    | 'cleaning'
+    | 'hygiene'
+    | 'household'
+    | 'party';
+  subcategory?: string;
   popular?: boolean;
   seoKeywords?: string;
 }
@@ -46,12 +49,14 @@ export interface Order {
   id: string;
   items: CartItem[];
   total: number;
-  status: 'new' | 'cooking' | 'delivering' | 'completed';
+  status: 'new' | 'cooking' | 'delivering' | 'completed' | 'cancelled';
   date: string;
   address: string;
   phone: string;
+  customerName?: string;
   paymentMethod: 'cash' | 'click' | 'payme';
   comment?: string;
+  telegramId?: number;
 }
 
 export type ToolFn = (args: any) => any;

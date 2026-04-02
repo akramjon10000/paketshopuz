@@ -5,10 +5,12 @@ import { Plus, Edit2, Trash2, X, Image as ImageIcon, Info, Save, Sparkles, Loade
 import { formatCurrency } from '../../utils/format';
 import { GoogleGenAI } from "@google/genai";
 import { useLanguage } from '../../context/LanguageContext';
+import { useToast } from '../../components/Toast';
 
 const AdminMenu = () => {
   const { products, addProduct, updateProduct, deleteProduct } = useMenu();
   const { lang } = useLanguage();
+  const { showToast } = useToast();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Partial<Product>>({});
   
@@ -19,7 +21,7 @@ const AdminMenu = () => {
   // AI State
   const [isGenerating, setIsGenerating] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Process images
@@ -38,13 +40,21 @@ const AdminMenu = () => {
       seoKeywords: editingProduct.seoKeywords || ''
     } as Product;
 
-    if (editingProduct.id) {
-      updateProduct(productData);
-    } else {
-      addProduct(productData);
+    try {
+      if (editingProduct.id) {
+        await updateProduct(productData);
+        showToast('Mahsulot yangilandi');
+      } else {
+        await addProduct(productData);
+        showToast('Mahsulot qo\'shildi');
+      }
+
+      setIsModalOpen(false);
+      resetForm();
+    } catch (error) {
+      console.error('Product save failed:', error);
+      showToast('Mahsulotni saqlashda xatolik yuz berdi', 'error');
     }
-    setIsModalOpen(false);
-    resetForm();
   };
 
   const resetForm = () => {
@@ -85,9 +95,17 @@ const AdminMenu = () => {
     setImageInputs(newInputs);
   };
 
-  const handleDelete = (id: string) => {
-    if (window.confirm('Haqiqatan ham o\'chirmoqchimisiz?')) {
-        deleteProduct(id);
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('Haqiqatan ham o\'chirmoqchimisiz?')) {
+        return;
+    }
+
+    try {
+        await deleteProduct(id);
+        showToast('Mahsulot o\'chirildi');
+    } catch (error) {
+        console.error('Product delete failed:', error);
+        showToast('Mahsulotni o\'chirishda xatolik yuz berdi', 'error');
     }
   };
 

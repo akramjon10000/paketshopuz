@@ -1,97 +1,133 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Order, CartItem } from '../types';
-import { formatCurrency } from '../utils/format';
-
-// --- TELEGRAM CONFIG ---
-// O'zingizning Bot Token va Chat IDingizni shu yerga yozing
-const TG_BOT_TOKEN = 'SIZNING_BOT_TOKENINGIZ'; // Masalan: "123456789:AAFg..."
-const TG_CHAT_ID = 'SIZNING_CHAT_IDINGIZ';     // Masalan: "987654321"
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { CartItem, Order } from '../types';
+import { ADMIN_TOKEN_STORAGE_KEY, ApiOrder, ordersAPI } from '../utils/api';
 
 interface OrderContextType {
   orders: Order[];
-  placeOrder: (items: CartItem[], total: number, address: string, phone: string, userName: string, paymentMethod: 'cash' | 'click' | 'payme', comment?: string) => void;
-  updateOrderStatus: (orderId: string, status: Order['status']) => void;
+  placeOrder: (
+    items: CartItem[],
+    total: number,
+    address: string,
+    phone: string,
+    userName: string,
+    paymentMethod: 'cash' | 'click' | 'payme',
+    comment?: string
+  ) => Promise<Order>;
+  updateOrderStatus: (orderId: string, status: Order['status']) => Promise<void>;
+  refreshOrders: () => Promise<void>;
 }
 
+const STORAGE_KEY = 'paketshop_orders';
 const OrderContext = createContext<OrderContextType | undefined>(undefined);
 
+const normalizeOrder = (order: ApiOrder | Order): Order => ({
+  ...order,
+  status: (order.status || 'new') as Order['status'],
+  paymentMethod: (order.paymentMethod || 'cash') as Order['paymentMethod'],
+  date: order.date || order.createdAt || new Date().toISOString(),
+});
+
+const getInitialOrders = (): Order[] => {
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (!saved) {
+    return [];
+  }
+
+  return JSON.parse(saved).map((order: Order) => normalizeOrder(order));
+};
+
 export const OrderProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [orders, setOrders] = useState<Order[]>(() => {
-    const saved = localStorage.getItem('kfc_orders');
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [orders, setOrders] = useState<Order[]>(getInitialOrders);
 
   useEffect(() => {
-    localStorage.setItem('kfc_orders', JSON.stringify(orders));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(orders));
   }, [orders]);
 
-  const sendTelegramNotification = async (order: Order, userName: string) => {
-    if (!TG_BOT_TOKEN || TG_BOT_TOKEN.includes('SIZNING')) {
-      console.warn("Telegram Token kiritilmagan! Console da ko'rsatilmoqda.");
+  const refreshOrders = async () => {
+    if (typeof window !== 'undefined' && !window.localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY)) {
       return;
     }
 
-    const itemsList = order.items
-      .map(i => `- ${i.name} (${i.quantity} x ${formatCurrency(i.price)})`)
-      .join('\n');
-
-    const paymentLabel = order.paymentMethod === 'cash' ? '💵 Naqd' : order.paymentMethod === 'click' ? '💳 Click' : '📱 Payme';
-
-    const message = `
-📦 <b>Yangi Buyurtma!</b> #${order.id}
-
-👤 <b>Mijoz:</b> ${userName}
-📞 <b>Tel:</b> ${order.phone}
-📍 <b>Manzil:</b> ${order.address}
-
-🛒 <b>Buyurtma tarkibi:</b>
-${itemsList}
-
-💰 <b>Jami:</b> ${formatCurrency(order.total)}
-💳 <b>To'lov:</b> ${paymentLabel}
-💬 <b>Izoh:</b> ${order.comment || "Yo'q"}
-📅 <b>Vaqt:</b> ${new Date(order.date).toLocaleString('uz-UZ')}
-    `;
-
     try {
-      // FIX: GET metodi va 'no-cors' rejimi brauzerdagi Network xatolarini oldini oladi
-      const url = `https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMessage?chat_id=${TG_CHAT_ID}&text=${encodeURIComponent(message)}&parse_mode=HTML`;
-      
-      await fetch(url, { 
-        method: 'GET',
-        mode: 'no-cors' // Juda muhim: Bu javobni o'qishga ruxsat bermaydi, lekin serverga yetib boradi
-      });
+      const apiOrders = await ordersAPI.getAll();
+      setOrders(apiOrders.map((order) => normalizeOrder(order)));
     } catch (error) {
-      console.error("Telegramga yuborishda xatolik (CORS/Network):", error);
-      // Xatolik bo'lsa ham dastur to'xtab qolmasligi kerak
+      console.warn('Falling back to local orders:', error);
     }
   };
 
-  const placeOrder = (items: CartItem[], total: number, address: string, phone: string, userName: string, paymentMethod: 'cash' | 'click' | 'payme', comment?: string) => {
-    const newOrder: Order = {
-      id: Math.random().toString(36).substr(2, 9).toUpperCase(),
+  useEffect(() => {
+    void refreshOrders();
+  }, []);
+
+  const placeOrder = async (
+    items: CartItem[],
+    total: number,
+    address: string,
+    phone: string,
+    userName: string,
+    paymentMethod: 'cash' | 'click' | 'payme',
+    comment?: string
+  ): Promise<Order> => {
+    const optimisticOrder: Order = {
+      id: `LOCAL-${Date.now()}`,
       items,
       total,
       status: 'new',
       date: new Date().toISOString(),
       address,
       phone,
+      customerName: userName,
       paymentMethod,
-      comment
-    }; 
+      comment,
+    };
 
-    setOrders(prev => [newOrder, ...prev]);
-    
-    // Telegramga yuborish (Async, foydalanuvchini kutdirib o'tirmaydi)
-    sendTelegramNotification(newOrder, userName);
+    setOrders((currentOrders) => [optimisticOrder, ...currentOrders]);
+
+    try {
+      const response = await ordersAPI.create({
+        items,
+        total,
+        address,
+        phone,
+        customerName: userName,
+        paymentMethod,
+        comment,
+      });
+
+      const persistedOrder = normalizeOrder(response.order || {
+        ...optimisticOrder,
+        id: response.orderId,
+      });
+
+      setOrders((currentOrders) => currentOrders.map((order) => (
+        order.id === optimisticOrder.id ? persistedOrder : order
+      )));
+
+      return persistedOrder;
+    } catch (error) {
+      setOrders((currentOrders) => currentOrders.filter((order) => order.id !== optimisticOrder.id));
+      throw error;
+    }
   };
 
-  const updateOrderStatus = (orderId: string, status: Order['status']) => {
-    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status } : o));
+  const updateOrderStatus = async (orderId: string, status: Order['status']) => {
+    const previousOrders = orders;
+
+    setOrders((currentOrders) => currentOrders.map((order) => (
+      order.id === orderId ? { ...order, status } : order
+    )));
+
+    try {
+      await ordersAPI.updateStatus(orderId, status);
+    } catch (error) {
+      setOrders(previousOrders);
+      throw error;
+    }
   };
 
   return (
-    <OrderContext.Provider value={{ orders, placeOrder, updateOrderStatus }}>
+    <OrderContext.Provider value={{ orders, placeOrder, updateOrderStatus, refreshOrders }}>
       {children}
     </OrderContext.Provider>
   );
@@ -99,6 +135,8 @@ ${itemsList}
 
 export const useOrders = () => {
   const context = useContext(OrderContext);
-  if (!context) throw new Error('useOrders must be used within OrderProvider');
+  if (!context) {
+    throw new Error('useOrders must be used within OrderProvider');
+  }
   return context;
 };

@@ -4,10 +4,16 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "node ./scripts/dev.mjs",
+    "dev:client": "vite --host 0.0.0.0",
+    "dev:server": "npm --prefix server run dev",
     "build": "vite build",
+    "build:server": "npm --prefix server run build",
     "preview": "vite preview",
-    "start": "npx serve dist -s -l 10000"
+    "start": "npx serve dist -s -l 10000",
+    "seed": "npm --prefix server run seed",
+    "test": "npm --prefix server run test",
+    "smoke": "node ./scripts/smoke.mjs"
   },
   "dependencies": {
     "react-dom": "^19.2.3",

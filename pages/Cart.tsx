@@ -7,6 +7,14 @@ import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext';
 import { formatCurrency } from '../utils/format';
 import AddressModal from '../components/AddressModal';
+import { useToast } from '../components/Toast';
+import { Order } from '../types';
+
+const PAYMENT_METHOD_LABELS: Record<Order['paymentMethod'], string> = {
+  cash: 'Naqd',
+  click: 'Click',
+  payme: 'Payme',
+};
 
 const Cart = () => {
   const { items, updateQuantity, removeFromCart, total, clearCart } = useCart();
@@ -14,6 +22,7 @@ const Cart = () => {
   const { user, currentAddress, setCurrentAddress } = useAuth();
   const navigate = useNavigate();
   const { t } = useLanguage();
+  const { showToast } = useToast();
 
   // State for checkout flow
   const [step, setStep] = useState<'cart' | 'checkout' | 'success'>('cart');
@@ -21,6 +30,7 @@ const Cart = () => {
   const [comment, setComment] = useState('');
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [lastCreatedOrder, setLastCreatedOrder] = useState<Order | null>(null);
 
   const handleProceedToCheckout = () => {
     if (!user) {
@@ -32,28 +42,34 @@ const Cart = () => {
     window.scrollTo(0, 0);
   };
 
-  const handleConfirmOrder = () => {
+  const handleConfirmOrder = async () => {
     if (!user) return;
     
     setIsSubmitting(true);
 
-    // Simulate network delay for better UX
-    setTimeout(() => {
-        placeOrder(
-            items, 
-            total, 
-            currentAddress, 
+    try {
+        await new Promise((resolve) => setTimeout(resolve, 1200));
+        const createdOrder = await placeOrder(
+            items,
+            total,
+            currentAddress,
             user.phone,
             user.name || 'Mijoz',
             paymentMethod,
             comment
         );
-        
+
+        setLastCreatedOrder(createdOrder);
         clearCart();
         setStep('success');
-        setIsSubmitting(false);
+        showToast('Buyurtma muvaffaqiyatli yuborildi');
         window.scrollTo(0, 0);
-    }, 1500);
+    } catch (error) {
+        console.error('Order submit failed:', error);
+        showToast('Buyurtma yuborishda xatolik yuz berdi', 'error');
+    } finally {
+        setIsSubmitting(false);
+    }
   };
 
   // --- RENDER: SUCCESS SCREEN ---
@@ -64,16 +80,30 @@ const Cart = () => {
                 <CheckCircle className="text-green-600 w-12 h-12" />
               </div>
               <h1 className="text-3xl font-black text-slate-900 mb-2">Buyurtma Qabul Qilindi!</h1>
-              <p className="text-slate-500 text-lg mb-8 max-w-xs mx-auto">Tez orada operatorlarimiz siz bilan bog'lanishadi.</p>
+              <p className="text-slate-500 text-lg mb-8 max-w-sm mx-auto">Tez orada operatorlarimiz siz bilan bog'lanishadi. Buyurtma raqamingizni saqlab qo'ying.</p>
               
               <div className="bg-slate-50 p-6 rounded-2xl w-full max-w-sm mb-8 border border-slate-100">
+                  {lastCreatedOrder && (
+                    <div className="flex justify-between text-sm mb-2">
+                        <span className="text-slate-500">Buyurtma raqami:</span>
+                        <span className="font-bold text-slate-900">{lastCreatedOrder.id}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between text-sm mb-2">
                       <span className="text-slate-500">To'lov turi:</span>
-                      <span className="font-bold text-slate-900 uppercase">{paymentMethod}</span>
+                      <span className="font-bold text-slate-900">{PAYMENT_METHOD_LABELS[lastCreatedOrder?.paymentMethod || paymentMethod]}</span>
                   </div>
                   <div className="flex justify-between text-sm mb-2">
                       <span className="text-slate-500">Jami summa:</span>
-                      <span className="font-bold text-slate-900">{formatCurrency(total)}</span>
+                      <span className="font-bold text-slate-900">{formatCurrency(lastCreatedOrder?.total || total)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm mb-2">
+                      <span className="text-slate-500">Telefon:</span>
+                      <span className="font-bold text-slate-900">{lastCreatedOrder?.phone || user?.phone}</span>
+                  </div>
+                  <div className="text-left text-sm mt-4 pt-4 border-t border-slate-200">
+                      <p className="text-slate-500 mb-1">Yetkazib berish manzili:</p>
+                      <p className="font-medium text-slate-900">{lastCreatedOrder?.address || currentAddress}</p>
                   </div>
               </div>
 

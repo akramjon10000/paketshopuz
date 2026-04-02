@@ -9,7 +9,7 @@ const AdminDashboard = () => {
   const { products } = useMenu();
 
   const totalRevenue = orders.reduce((acc, order) => acc + order.total, 0);
-  const activeOrders = orders.filter(o => o.status !== 'completed').length;
+  const activeOrders = orders.filter(o => !['completed', 'cancelled'].includes(o.status)).length;
   
   const StatCard = ({ title, value, icon: Icon, color }: any) => (
     <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex items-center space-x-4">
@@ -67,6 +67,7 @@ const AdminDashboard = () => {
                 order.status === 'new' ? 'bg-blue-100 text-blue-600' :
                 order.status === 'cooking' ? 'bg-orange-100 text-orange-600' :
                 order.status === 'delivering' ? 'bg-purple-100 text-purple-600' :
+                order.status === 'cancelled' ? 'bg-rose-100 text-rose-600' :
                 'bg-green-100 text-green-600'
               }`}>
                 {order.status}

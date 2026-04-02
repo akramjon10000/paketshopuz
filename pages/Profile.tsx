@@ -12,6 +12,7 @@ const Profile = () => {
     const [showAdminLogin, setShowAdminLogin] = React.useState(false);
     const [adminPassword, setAdminPassword] = React.useState('');
     const [error, setError] = React.useState('');
+    const [isAdminSubmitting, setIsAdminSubmitting] = React.useState(false);
     const navigate = useNavigate();
 
     const handleRegister = () => {
@@ -27,9 +28,11 @@ const Profile = () => {
         register(name.trim(), phone.trim());
     };
 
-    const handleAdminLogin = () => {
+    const handleAdminLogin = async () => {
         setError('');
-        const success = loginAdmin(adminPassword);
+        setIsAdminSubmitting(true);
+        const success = await loginAdmin(adminPassword);
+        setIsAdminSubmitting(false);
         if (!success) {
             setError('Parol noto\'g\'ri');
         }
@@ -59,15 +62,16 @@ const Profile = () => {
                             className="w-full px-4 py-4 border border-slate-200 rounded-xl bg-white focus:border-orange-600 outline-none transition-colors"
                             value={adminPassword}
                             onChange={e => setAdminPassword(e.target.value)}
-                            onKeyDown={e => e.key === 'Enter' && handleAdminLogin()}
+                            onKeyDown={e => e.key === 'Enter' && void handleAdminLogin()}
                         />
                     </div>
 
                     <button
-                        onClick={handleAdminLogin}
+                        onClick={() => { void handleAdminLogin(); }}
+                        disabled={isAdminSubmitting}
                         className="w-full bg-slate-900 text-white py-4 rounded-xl font-bold shadow-lg hover:bg-slate-800 transition-colors"
                     >
-                        Kirish
+                        {isAdminSubmitting ? 'Tekshirilmoqda...' : 'Kirish'}
                     </button>
 
                     <button

@@ -1,5 +1,7 @@
 import { Router } from 'express';
-import { getProducts, getProductById, createProduct } from '../db/neon.js';
+import { getProducts, getProductById, createProduct, deleteProduct } from '../db/neon.js';
+import { requireAdmin } from '../lib/adminAuth.js';
+import { validateCreateProductInput } from '../lib/validation.js';
 
 const router = Router();
 
@@ -29,19 +31,30 @@ router.get('/:id', async (req, res) => {
 });
 
 // POST /api/products - Yangi mahsulot (Admin uchun)
-router.post('/', async (req, res) => {
+router.post('/', requireAdmin, async (req, res) => {
     try {
-        const { id, name, description, price, images, category, popular } = req.body;
+        const validation = validateCreateProductInput(req.body);
 
-        if (!id || !name || !price || !category) {
-            return res.status(400).json({ error: 'Missing required fields' });
+        if (!validation.success) {
+            return res.status(400).json({ error: validation.error });
         }
 
+        const { id, name, description, price, images, category, popular } = validation.data;
         await createProduct({ id, name, description, price, images, category, popular });
         res.status(201).json({ success: true, id });
     } catch (error) {
         console.error('Error creating product:', error);
         res.status(500).json({ error: 'Failed to create product' });
+    }
+});
+
+router.delete('/:id', requireAdmin, async (req, res) => {
+    try {
+        await deleteProduct(req.params.id);
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Error deleting product:', error);
+        res.status(500).json({ error: 'Failed to delete product' });
     }
 });
 

@@ -1,17 +1,21 @@
 import { Router } from 'express';
 import { createOrder, getOrdersByPhone, getAllOrders, updateOrderStatus } from '../db/neon.js';
 import { sendOrderNotification } from '../bot/index.js';
+import { requestHasValidAdminToken, requireAdmin } from '../lib/adminAuth.js';
+import { validateCreateOrderInput, validateOrderStatusInput } from '../lib/validation.js';
 
 const router = Router();
 
 // POST /api/orders - Yangi buyurtma
 router.post('/', async (req, res) => {
     try {
-        const { items, total, address, phone, customerName, paymentMethod, comment, telegramId } = req.body;
+        const validation = validateCreateOrderInput(req.body);
 
-        if (!items || !total || !phone) {
-            return res.status(400).json({ error: 'Missing required fields' });
+        if (!validation.success) {
+            return res.status(400).json({ error: validation.error });
         }
+
+        const { items, total, address, phone, customerName, paymentMethod, comment, telegramId } = validation.data;
 
         const orderId = `ORD-${Date.now()}-${Math.random().toString(36).substring(7)}`;
 
@@ -34,7 +38,7 @@ router.post('/', async (req, res) => {
             console.error('Failed to send Telegram notification:', e);
         }
 
-        res.status(201).json({ success: true, orderId });
+        res.status(201).json({ success: true, orderId, order });
     } catch (error) {
         console.error('Error creating order:', error);
         res.status(500).json({ error: 'Failed to create order' });
@@ -48,6 +52,9 @@ router.get('/', async (req, res) => {
 
         if (all === 'true') {
             // Admin uchun barcha buyurtmalar
+            if (!requestHasValidAdminToken(req)) {
+                return res.status(401).json({ error: 'Admin authorization required' });
+            }
             const orders = await getAllOrders();
             return res.json(orders);
         }
@@ -65,15 +72,15 @@ router.get('/', async (req, res) => {
 });
 
 // PATCH /api/orders/:id - Status yangilash
-router.patch('/:id', async (req, res) => {
+router.patch('/:id', requireAdmin, async (req, res) => {
     try {
-        const { status } = req.body;
+        const validation = validateOrderStatusInput(req.body?.status);
 
-        if (!status) {
-            return res.status(400).json({ error: 'Status required' });
+        if (!validation.success) {
+            return res.status(400).json({ error: validation.error });
         }
 
-        await updateOrderStatus(req.params.id, status);
+        await updateOrderStatus(req.params.id, validation.data);
         res.json({ success: true });
     } catch (error) {
         console.error('Error updating order:', error);
